@@ -1,0 +1,174 @@
+Traceback (most recent call last):
+  File "c:\stabil_jb\venv\Lib\site-packages\jupyter_cache\executors\utils.py", line 58, in single_nb_execution
+    executenb(
+  File "c:\stabil_jb\venv\Lib\site-packages\nbclient\client.py", line 1305, in execute
+    return NotebookClient(nb=nb, resources=resources, km=km, **kwargs).execute()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\stabil_jb\venv\Lib\site-packages\jupyter_core\utils\__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 653, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\Users\Administrator\AppData\Local\Programs\Python\Python311\Lib\contextlib.py", line 222, in __aexit__
+    await self.gen.athrow(typ, value, traceback)
+  File "c:\stabil_jb\venv\Lib\site-packages\nbclient\client.py", line 650, in async_setup_kernel
+    yield
+  File "c:\stabil_jb\venv\Lib\site-packages\nbclient\client.py", line 705, in async_execute
+    await self.async_execute_cell(
+  File "c:\stabil_jb\venv\Lib\site-packages\nbclient\client.py", line 1058, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "c:\stabil_jb\venv\Lib\site-packages\nbclient\client.py", line 914, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib.patches import FancyArrowPatch
+
+# Points from GeoGebra image
+points = {
+    'A': (2, 3), 'B': (2, 4), 'C': (3, 4), 'D': (3, 3),
+    'E': (2, -3), 'F': (3, -3), 'G': (3, -2), 'H': (2, -4),
+    'I': (3, -4), 'J': (2, -2), 'K': (2, -1), 'L': (3, -1),
+    'M': (2, 2), 'N': (3, 2), 'O': (2, 1), 'P': (3, 1),
+}
+
+labels = list(points.keys())
+coords = np.array(list(points.values()), dtype=float)  # shape (16, 2)
+
+# Colors for each point (gradient from blue to cyan)
+colors = plt.cm.cool(np.linspace(0.2, 0.9, len(labels)))
+
+fig, ax = plt.subplots(figsize=(10, 8))
+fig.patch.set_facecolor('#0d1117')
+ax.set_facecolor('#0d1117')
+
+# Styling
+ax.set_xlim(-1, 6)
+ax.set_ylim(-6, 6)
+ax.set_aspect('equal')
+ax.axhline(0, color='#30363d', linewidth=1.2, zorder=1)
+ax.axvline(0, color='#30363d', linewidth=1.2, zorder=1)
+ax.grid(True, color='#21262d', linewidth=0.5, linestyle='--', alpha=0.6)
+ax.tick_params(colors='#8b949e', labelsize=9)
+for spine in ax.spines.values():
+    spine.set_edgecolor('#30363d')
+
+# Title & labels
+ax.set_title('Matrix Transformation → Approaching X-Axis', 
+             color='#58a6ff', fontsize=14, fontweight='bold', pad=15,
+             fontfamily='monospace')
+ax.set_xlabel('X', color='#8b949e', fontsize=11)
+ax.set_ylabel('Y', color='#8b949e', fontsize=11)
+
+# Draw x-axis highlight
+ax.axhline(0, color='#58a6ff', linewidth=2, alpha=0.4, zorder=2)
+
+# Create scatter points and text labels
+scatters = []
+texts = []
+for i, (label, color) in enumerate(zip(labels, colors)):
+    sc = ax.plot([], [], 'o', color=color, markersize=9, 
+                 markeredgecolor='white', markeredgewidth=0.8, zorder=5)[0]
+    tx = ax.text(0, 0, label, color=color, fontsize=8, fontweight='bold',
+                 ha='left', va='bottom', fontfamily='monospace', zorder=6,
+                 alpha=0)
+    scatters.append(sc)
+    texts.append(tx)
+
+# Trail lines (ghost effect)
+trails = []
+for i, color in enumerate(colors):
+    trail, = ax.plot([], [], '-', color=color, linewidth=1, alpha=0.3, zorder=3)
+    trails.append(trail)
+
+# Info text
+info_text = ax.text(0.02, 0.97, '', transform=ax.transAxes,
+                    color='#58a6ff', fontsize=10, va='top', ha='left',
+                    fontfamily='monospace',
+                    bbox=dict(boxstyle='round,pad=0.4', facecolor='#161b22', 
+                              edgecolor='#30363d', alpha=0.9))
+
+# Matrix display
+matrix_text = ax.text(0.78, 0.97, '', transform=ax.transAxes,
+                      color='#3fb950', fontsize=9, va='top', ha='left',
+                      fontfamily='monospace',
+                      bbox=dict(boxstyle='round,pad=0.4', facecolor='#161b22', 
+                                edgecolor='#30363d', alpha=0.9))
+
+FRAMES = 120
+PAUSE_FRAMES = 20  # pause at start and end
+
+trail_history = [[] for _ in range(len(labels))]
+
+def get_scale(frame):
+    """Compute scale factor: 1.0 → 0.0 smoothly with easing"""
+    if frame < PAUSE_FRAMES:
+        return 1.0
+    if frame >= FRAMES - PAUSE_FRAMES:
+        return 0.0
+    t = (frame - PAUSE_FRAMES) / (FRAMES - 2 * PAUSE_FRAMES)
+    # Ease in-out cubic
+    t = 3*t**2 - 2*t**3
+    return 1.0 - t
+
+def animate(frame):
+    scale = get_scale(frame)
+    
+    for i, (label, sc, tx, trail) in enumerate(zip(labels, scatters, texts, trails)):
+        ox, oy = coords[i]
+        # Transformation: compress y toward 0 (x-axis)
+        ny = oy * scale
+        nx = ox  # x stays the same
+        
+        sc.set_data([nx], [ny])
+        tx.set_position((nx + 0.08, ny + 0.08))
+        tx.set_alpha(min(1.0, 1.2 - scale * 0.3))
+        
+        # Trail
+        trail_history[i].append((nx, ny))
+        if len(trail_history[i]) > 15:
+            trail_history[i].pop(0)
+        if len(trail_history[i]) > 1:
+            th = np.array(trail_history[i])
+            trail.set_data(th[:, 0], th[:, 1])
+    
+    # Info text
+    percent = int((1 - scale) * 100)
+    info_text.set_text(f'Compression: {percent:3d}%\nScale Y: {scale:.3f}')
+    
+    # Matrix
+    matrix_text.set_text(f'T = [1  0]\n     [0  {scale:.2f}]')
+    
+    return scatters + texts + trails + [info_text, matrix_text]
+
+ani = animation.FuncAnimation(
+    fig, animate, frames=FRAMES,
+    interval=40, blit=True, repeat=True
+)
+
+plt.tight_layout()
+
+# Save as GIF
+print("Saving animation...")
+ani.save('/mnt/user-data/outputs/matrix_transform.gif', 
+         writer='pillow', fps=25, dpi=100,
+         savefig_kwargs={'facecolor': '#0d1117'})
+print("Done! Saved to matrix_transform.gif")
+
+plt.show()
+
+------------------
+
+
+[31m---------------------------------------------------------------------------[39m
+[31mModuleNotFoundError[39m                       Traceback (most recent call last)
+[36mCell[39m[36m [39m[32mIn[1][39m[32m, line 1[39m
+[32m----> [39m[32m1[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mnumpy[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01mnp[39;00m
+[32m      2[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mmatplotlib[39;00m[34;01m.[39;00m[34;01mpyplot[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01mplt[39;00m
+[32m      3[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mmatplotlib[39;00m[34;01m.[39;00m[34;01manimation[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01manimation[39;00m
+
+[31mModuleNotFoundError[39m: No module named 'numpy'
+
