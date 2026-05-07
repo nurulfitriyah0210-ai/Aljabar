@@ -25,6 +25,8 @@ nbclient.exceptions.CellExecutionError: An error occurred while executing the fo
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib.patches as patches
+from matplotlib.lines import Line2D
 from IPython.display import HTML, display
 ------------------
 
