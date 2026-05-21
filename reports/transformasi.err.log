@@ -153,7 +153,7 @@ plt.tight_layout()
 
 # Save as GIF
 print("Saving animation...")
-ani.save('/mnt/user-data/outputs/matrix_transform.gif', 
+ani.save('matrix_transform.gif', 
          writer='pillow', fps=25, dpi=100,
          savefig_kwargs={'facecolor': '#0d1117'})
 print("Done! Saved to matrix_transform.gif")
