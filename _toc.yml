@@ -11,3 +11,4 @@ chapters:
 - file: matrikstransformasi
 - file: matrix_animation
 - file: DekomposisiQR
+- file: SVD
